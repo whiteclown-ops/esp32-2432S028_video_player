@@ -5,7 +5,7 @@
 </a>
 
 ## Youtube Tutorial
->⚠️ Make sure you have the board model ESP32-2432S028 with the **ILI9341 Display controller** — not the ST7789 (parallel) controller, which isn't supported by the graphic library [GFX Library for Arduino](https://github.com/moononournation/Arduino_GFX)
+> Warning: Make sure you have the board model ESP32-2432S028 with the **ILI9341 Display controller** - not the ST7789 (parallel) controller, which is not supported by the graphic library [GFX Library for Arduino](https://github.com/moononournation/Arduino_GFX)
 
 [<img src="https://github.com/thelastoutpostworkshop/images/blob/main/Cheay%20Yellow%20Display-3.png" width="500">](https://youtu.be/jYcxUgxz9ks)
 
@@ -20,7 +20,7 @@ This project turns the ESP32-2432S028 "Cheap Yellow Display" with the **ILI9341*
 - Uses the Arduino GFX and JPEGDEC libraries for MJPEG decoding and display output
 - Initializes the display and SD card independently for reliable playback on the CYD hardware
 - Prints playback statistics to the Serial Monitor, including frame count, average FPS, timing breakdown, and detected video size
-- Includes sample SD card content and FFmpeg commands for preparing compatible video files
+- Includes sample SD card content and a simple Video Conversion Studio workflow for preparing compatible video files
 
 ## What You Can Customize
 - `DISPLAY_SPI_SPEED`: switch between `80000000L` and `40000000L` if your display is unstable at 80 MHz
@@ -31,53 +31,22 @@ This project turns the ESP32-2432S028 "Cheap Yellow Display" with the **ILI9341*
 - `MAX_FILES`: increase or decrease the maximum number of videos loaded into the playlist
 - `gfx->setRotation(0)`: change screen orientation to match your enclosure or video layout
 - `gfx->invertDisplay(true)`: enable inversion for CYD variants that require it
-- FFmpeg options such as `fps`, `scale`, `transpose`, `q:v`, and `eq=brightness`: tune video orientation, resolution, quality, frame rate, and brightness before copying files to the SD card
-
+- Video settings such as orientation, resolution, quality, frame rate, and brightness can be adjusted in Video Conversion Studio before copying files to the SD card
 
 ## Notes
 > Some model of Cheap Yellow Display works only at speed of 40Mhz, change the DISPLAY_SPI_SPEED to 40000000L:
 ```cmd
-#define DISPLAY_SPI_SPEED 40000000L // 40MHz 
-```
-## 🎬 How to Use These FFmpeg Commands
-
-Each of the following commands generates a `.mjpeg` file — a Motion JPEG video format — from an input `.mp4` or `.mov` video, optimized for use in frame-by-frame playback with an SD card reader.
-
-Make sure you have [FFmpeg](https://ffmpeg.org/download.html) installed and accessible from your terminal or command prompt.
-
----
-
-## Convert video of 16:9 (horizontal) to aspect ratio to 4:3
-```cmd
-ffmpeg -y -i input.mp4 -pix_fmt yuvj420p -q:v 7 -vf "transpose=1,fps=24,scale=-1:320:flags=lanczos" output.mjpeg
+#define DISPLAY_SPI_SPEED 40000000L // 40MHz
 ```
 
-## Convert video of 9:16 (vertical) to aspect ratio to 3:4
-```cmd
-ffmpeg -y -i input.mp4 -pix_fmt yuvj420p -q:v 7 -vf "fps=24,scale=-1:320:flags=lanczos" output.mjpeg
-```
-## Command for a horizontal video already of aspect ratio 4:3
-```cmd
-ffmpeg -y -i cropped_4x3.mp4 -pix_fmt yuvj420p -q:v 7 -vf "transpose=1,fps=24,scale=240:320:flags=lanczos" final_240x320.mjpeg
-```
+## Convert Videos with Video Conversion Studio
 
-## Command for a vertical video already of aspect ratio 3:4
-```cmd
-ffmpeg -y -i cropped.mp4 -pix_fmt yuvj420p -q:v 7 -vf "fps=24,scale=240:320:flags=lanczos" scaled.mjpeg
-```
+<p align="center">
+  <a href="https://thelastoutpostworkshop.github.io/video_conversion/">
+    <img src="https://img.shields.io/badge/Open-Video%20Conversion%20Studio-FF6A00?style=for-the-badge" alt="Open Video Conversion Studio">
+  </a>
+</p>
 
-## Example To reduce brightness of the output video (helps with bright colors)
-see [issue 7](https://github.com/thelastoutpostworkshop/esp32-2432S028_video_player/issues/7)
-```cmd
-ffmpeg -y -i "input.mp4" -q:v 6 -filter:v "scale=-1:ih/2,eq=brightness=-0.05" -c:v mjpeg -an "output.mjpeg"
-```
-
-### Options explained
-- -pix_fmt yuvj420p: Ensures JPEG-compatible pixel format
-- -q:v 7: Controls image quality (lower is better; 1 = best, 31 = worst)
-- -vf: Specifies the video filters:
-- fps=24: Extracts 24 frames per second
-- scale: Resizes the video
-- transpose=1: Rotates the video 90° clockwise
-- eq: Applies an equalizer filter to slightly darken the video. Values range from -1.0 to 1.0.
-- .mjpeg: Output format used when streaming or storing a series of JPEG frames as a video
+<p align="center">
+  FFmpeg is no longer necessary. There are no complex commands to learn. Just use <a href="https://thelastoutpostworkshop.github.io/video_conversion/"><strong>Video Conversion Studio</strong></a> to prepare MJPEG files for this player.
+</p>
