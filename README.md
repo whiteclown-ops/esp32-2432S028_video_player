@@ -10,7 +10,7 @@
 [<img src="https://github.com/thelastoutpostworkshop/images/blob/main/Cheay%20Yellow%20Display-3.png" width="500">](https://youtu.be/jYcxUgxz9ks)
 
 ## Project Description
-This project turns the ESP32-2432S028 "Cheap Yellow Display" with the **ILI9341** controller into a standalone SD-card video player. The sketch scans a `/mjpeg` folder on the SD card, loads Motion JPEG (`.mjpeg`) files, and plays them back full-screen on the built-in 240x320 display. It is designed for simple offline playback with minimal setup: copy converted MJPEG files to the card, power the board, and the videos play in sequence on a loop.
+This project turns the ESP32-2432S028 "Cheap Yellow Display" (2.8" or 2.4") with the **ILI9341** controller into a standalone SD-card video player. The sketch scans a `/mjpeg` folder on the SD card, loads Motion JPEG (`.mjpeg`) files, and plays them back full-screen on the built-in 240x320 display. It is designed for simple offline playback with minimal setup: copy converted MJPEG files to the card, power the board, and the videos play in sequence on a loop.
 
 ## Features
 - Plays `.mjpeg` videos directly from the SD card on the ESP32-2432S028
