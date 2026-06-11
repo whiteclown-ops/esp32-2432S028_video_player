@@ -22,6 +22,7 @@
 
 
 #define SD_SPI_SPEED 80000000L      // 80Mhz
+#define ENABLE_SD_DIAGNOSTICS false // Prints SD card and file-open diagnostics to the Serial Monitor
 
 const char *MJPEG_FOLDER = "/mjpeg"; // Name of the mjpeg folder on the SD Card
 
@@ -87,6 +88,7 @@ void setup()
 
     // SD card initialization
     Serial.println("SD Card initialization");
+    sd_spi.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
     if (!SD.begin(SD_CS, sd_spi, SD_SPI_SPEED, "/sd"))
     {
         Serial.println("ERROR: File system mount failed!");
@@ -95,6 +97,7 @@ void setup()
             /* no need to continue */
         }
     }
+    runSdDiagnostics();
 
     // Buffer allocation for mjpeg playing
     Serial.println("Buffer allocation");
@@ -141,7 +144,7 @@ void loop()
 void playSelectedMjpeg(int mjpegIndex)
 {
     // Build the full path for the selected mjpeg
-    String fullPath = String(MJPEG_FOLDER) + "/" + mjpegFileList[mjpegIndex];
+    String fullPath = buildMjpegPath(mjpegFileList[mjpegIndex]);
     char mjpegFilename[128];
     fullPath.toCharArray(mjpegFilename, sizeof(mjpegFilename));
 
@@ -228,6 +231,130 @@ void mjpegPlayFromSDCard(char *mjpegFilename)
     }
 }
 
+const char *sdCardTypeName(uint8_t cardType)
+{
+    switch (cardType)
+    {
+    case CARD_NONE:
+        return "NONE";
+    case CARD_MMC:
+        return "MMC";
+    case CARD_SD:
+        return "SDSC";
+    case CARD_SDHC:
+        return "SDHC";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+String buildMjpegPath(const String &fileName)
+{
+    if (fileName.startsWith("/"))
+    {
+        return fileName;
+    }
+    if (fileName.indexOf('/') >= 0)
+    {
+        return "/" + fileName;
+    }
+    return String(MJPEG_FOLDER) + "/" + fileName;
+}
+
+bool isMjpegVideoFileName(const String &fileName)
+{
+    int slashIndex = fileName.lastIndexOf('/');
+    String baseName = slashIndex >= 0 ? fileName.substring(slashIndex + 1) : fileName;
+    return baseName.endsWith(".mjpeg") && !baseName.startsWith("._");
+}
+
+void printFileReadTest(File &file)
+{
+    uint8_t bytes[4] = {0, 0, 0, 0};
+    int bytesRead = file.read(bytes, sizeof(bytes));
+    Serial.printf("read=%d first bytes=%02X %02X %02X %02X\n",
+                  bytesRead,
+                  bytes[0],
+                  bytes[1],
+                  bytes[2],
+                  bytes[3]);
+}
+
+void runSdDiagnostics()
+{
+    if (!ENABLE_SD_DIAGNOSTICS)
+    {
+        return;
+    }
+
+    Serial.println("SD diagnostics start");
+    uint8_t cardType = SD.cardType();
+    Serial.printf("Card type: %s\n", sdCardTypeName(cardType));
+    Serial.printf("Card size: %llu MB\n", SD.cardSize() / (1024ULL * 1024ULL));
+
+    File mjpegDir = SD.open(MJPEG_FOLDER);
+    if (!mjpegDir)
+    {
+        Serial.printf("Diagnostic: failed to open %s folder\n", MJPEG_FOLDER);
+        Serial.println("SD diagnostics end");
+        return;
+    }
+    if (!mjpegDir.isDirectory())
+    {
+        Serial.printf("Diagnostic: %s is not a folder\n", MJPEG_FOLDER);
+        mjpegDir.close();
+        Serial.println("SD diagnostics end");
+        return;
+    }
+
+    String firstMjpegPath = "";
+    while (true)
+    {
+        File entry = mjpegDir.openNextFile();
+        if (!entry)
+        {
+            break;
+        }
+
+        String name = entry.name();
+        Serial.printf("entry: '%s', size=%lu, dir=%d\n",
+                      name.c_str(),
+                      (unsigned long)entry.size(),
+                      entry.isDirectory());
+
+        if (firstMjpegPath.length() == 0 && !entry.isDirectory() && isMjpegVideoFileName(name))
+        {
+            firstMjpegPath = buildMjpegPath(name);
+            Serial.print("openNextFile read test: ");
+            printFileReadTest(entry);
+        }
+
+        entry.close();
+    }
+    mjpegDir.close();
+
+    if (firstMjpegPath.length() == 0)
+    {
+        Serial.printf("Diagnostic: no .mjpeg file found in %s\n", MJPEG_FOLDER);
+        Serial.println("SD diagnostics end");
+        return;
+    }
+
+    Serial.printf("Direct-open test: %s\n", firstMjpegPath.c_str());
+    File directFile = SD.open(firstMjpegPath.c_str(), FILE_READ);
+    if (!directFile || directFile.isDirectory())
+    {
+        Serial.printf("Direct-open result: FAIL for %s\n", firstMjpegPath.c_str());
+    }
+    else
+    {
+        Serial.printf("Direct-open result: OK, size=%lu, ", (unsigned long)directFile.size());
+        printFileReadTest(directFile);
+    }
+    directFile.close();
+    Serial.println("SD diagnostics end");
+}
+
 // Read the mjpeg file list in the mjpeg folder of the SD card
 void loadMjpegFilesList()
 {
@@ -249,7 +376,7 @@ void loadMjpegFilesList()
         if (!file.isDirectory())
         {
             String name = file.name();
-            if (name.endsWith(".mjpeg"))
+            if (isMjpegVideoFileName(name))
             {
                 mjpegFileList[mjpegCount] = name;
                 mjpegFileSizes[mjpegCount] = file.size(); // Save file size (in bytes)

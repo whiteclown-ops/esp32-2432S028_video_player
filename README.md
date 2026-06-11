@@ -27,6 +27,7 @@ This project turns the ESP32-2432S028 "Cheap Yellow Display" (2.8" or 2.4") with
 - `BL_PIN`: change the display backlight pin for board variants that use a different backlight connection
 - `BOOT_PIN` and `BOOT_BUTTON_DEBOUCE_TIME`: remap or adjust the skip button behavior
 - `SD_CS`, `SD_MISO`, `SD_MOSI`, `SD_SCK`, and `SD_SPI_SPEED`: adapt SD card wiring or bus speed if needed
+- `ENABLE_SD_DIAGNOSTICS`: set to `true` to print SD card and file-open diagnostics when troubleshooting
 - `MJPEG_FOLDER`: point the sketch to a different folder name on the SD card
 - `MAX_FILES`: increase or decrease the maximum number of videos loaded into the playlist
 - `gfx->setRotation(0)`: change screen orientation to match your enclosure or video layout
@@ -38,6 +39,45 @@ This project turns the ESP32-2432S028 "Cheap Yellow Display" (2.8" or 2.4") with
 ```cmd
 #define DISPLAY_SPI_SPEED 40000000L // 40MHz
 ```
+
+## SD Card Diagnostics
+If the Serial Monitor shows files being found in `/mjpeg` but playback fails with a message like this:
+
+```cmd
+ERROR: Failed to open /mjpeg/example.mjpeg file for reading
+```
+
+enable the SD diagnostics in the sketch:
+
+```cpp
+#define ENABLE_SD_DIAGNOSTICS true
+```
+
+For troubleshooting, you can also lower the SD card SPI speed:
+
+```cpp
+#define SD_SPI_SPEED 40000000L
+```
+
+or:
+
+```cpp
+#define SD_SPI_SPEED 20000000L
+```
+
+Upload the sketch again, open the Serial Monitor at `115200`, and copy the output from:
+
+```cmd
+SD diagnostics start
+```
+
+through:
+
+```cmd
+SD diagnostics end
+```
+
+The diagnostics print the SD card type and size, list the `/mjpeg` folder entries, test reading the first real `.mjpeg` file from the directory scan, and then test opening that same file by full path.
 
 ## Convert Videos with Video Conversion Studio
 
